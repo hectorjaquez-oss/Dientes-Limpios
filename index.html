@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#5DCAA5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cepillado Mágico">
+<title>🦷 Cepillado Mágico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal: #5DCAA5;
+    --blue: #378ADD;
+    --purple: #7F77DD;
+    --purple-dark: #534AB7;
+    --gold: #FAC775;
+    --white: #ffffff;
+    --font: 'Nunito', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: var(--font);
+    background: #1a1a2e;
+    overflow: hidden;
+  }
+
+  #app {
+    width: 100%;
+    height: 100vh;
+    background: linear-gradient(160deg, var(--teal) 0%, var(--blue) 50%, var(--purple) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  .bubbles {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .bubble {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    animation: float linear infinite;
+  }
+  @keyframes float {
+    0% { transform: translateY(110vh) scale(0.8); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-20vh) scale(1.1); opacity: 0; }
+  }
+
+  .screen {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 420px;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 28px 18px 40px;
+    min-height: 100vh;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .header h1 {
+    font-size: 26px; font-weight: 800;
+    color: white;
+    letter-spacing: -0.5px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  }
+  .header p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.82);
+    margin-top: 2px;
+  }
+
+  .streak-section {
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .streak-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.75);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+  .streak-dots {
+    display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+  }
+  .dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    border: 2px solid rgba(255,255,255,0.35);
+    transition: all 0.4s cubic-bezier(.34,1.56,.64,1);
+    position: relative;
+  }
+  .dot.done {
+    background: var(--gold);
+    border-color: var(--gold);
+    transform: scale(1.15);
+    box-shadow: 0 0 10px rgba(250,199,117,0.5);
+  }
+  .dot.done::after {
+    content: '★';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    color: #412402;
+  }
+
+  .video-badge {
+    background: rgba(255,255,255,0.18);
+    border: 1.5px solid rgba(255,255,255,0.38);
+    border-radius: 20px;
+    padding: 5px 16px;
+    font-size: 12px;
+    color: white;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+
+  .timer-ring {
+    position: relative;
+    width: 155px; height: 155px;
+    margin-bottom: 14px;
+  }
+  .timer-ring svg {
+    position: absolute; top: 0; left: 0;
+    filter: drop-shadow(0 4px 16px rgba(0,0,0,0.15));
+  }
+  .timer-text {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    text-align: center;
+  }
+  .timer-text .time {
+    font-size: 40px; font-weight: 800;
+    color: white; line-height: 1;
+    letter-spacing: -1px;
+  }
+  .timer-text .lbl {
+    font-size: 11px;
+    color: rgba(255,255,255,0.78);
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  .prog-wrap {
+    width: 100%;
+    background: rgba(255,255,255,0.18);
+    border-radius: 10px; height: 8px;
+    margin-bottom: 14px; overflow: hidden;
+  }
+  .prog-fill {
+    height: 100%; background: white;
+    border-radius: 10px;
+    transition: width 1s linear;
+  }
+
+  .vid-card {
+    width: 100%;
+    background: rgba(0,0,0,0.25);
+    border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    border: 1.5px solid rgba(255,255,255,0.18);
+  }
+  .vid-card iframe {
+    width: 100%; height: 195px;
+    border: none; display: block;
+  }
+  .vid-overlay {
+    position: absolute; inset: 0;
+    background: rgba(10,10,30,0.55);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: opacity 0.25s;
+  }
+  .vid-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .play-circle {
+    width: 66px; height: 66px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.95);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s;
+  }
+  .play-circle:active { transform: scale(0.93); }
+  .play-circle svg { width: 28px; height: 28px; fill: var(--purple-dark); margin-left: 4px; }
+  .cat-pill {
+    background: rgba(255,255,255,0.22);
+    border: 1.5px solid rgba(255,255,255,0.45);
+    border-radius: 20px; padding: 4px 14px;
+    font-size: 12px; color: white; font-weight: 700;
+  }
+
+  .vid-info {
+    padding: 10px 14px 12px;
+  }
+  .vid-name {
+    font-size: 13px; font-weight: 700;
+    color: white; line-height: 1.35;
+  }
+  .vid-cat-tag {
+    display: inline-block;
+    margin-top: 5px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 2px 10px;
+    font-size: 11px; color: rgba(255,255,255,0.85);
+    font-weight: 600;
+  }
+
+  .tip-box {
+    width: 100%;
+    background: rgba(255,255,255,0.14);
+    border: 1.5px solid rgba(255,255,255,0.25);
+    border-radius: 13px;
+    padding: 10px 14px;
+    color: white;
+    font-size: 13px; font-weight: 600;
+    text-align: center;
+    margin-bottom: 14px;
+    line-height: 1.4;
+    transition: all 0.3s ease;
+  }
+
+  .btn-primary {
+    background: white;
+    color: var(--purple-dark);
+    border: none;
+    border-radius: 50px;
+    padding: 15px 40px;
+    font-size: 17px;
+    font-family: var(--font);
+    font-weight: 800;
+    cursor: pointer;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 9px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+  }
+  .btn-primary:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+  .btn-primary svg { width: 20px; height: 20px; fill: var(--purple-dark); }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .btn-sec {
+    background: rgba(255,255,255,0.18);
+    color: white;
+    border: 1.5px solid rgba(255,255,255,0.4);
+    border-radius: 50px;
+    padding: 10px 22px;
+    font-size: 13px;
+    font-family: var(--font);
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: background 0.15s;
+  }
+  .btn-sec:active { background: rgba(255,255,255,0.32); }
+  .btn-sec svg { width: 16px; height: 16px; fill: white; }
+
+  .celebration {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    animation: popIn 0.4s cubic-bezier(.34,1.56,.64,1);
+  }
+  .celebration.show { display: flex; }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .cel-emoji { font-size: 48px; line-height: 1; }
+  .cel-title { font-size: 22px; font-weight: 800; color: white; text-align: center; }
+  .cel-msg { font-size: 14px; color: rgba(255,255,255,0.88); text-align: center; font-weight: 600; }
+
+  .confetti-burst {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 999;
+  }
+  .confetti-piece {
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    animation: confettiFall 2.5s ease-in forwards;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  .hidden { display: none !important; }
+
+  @media (max-height: 700px) {
+    .screen { padding: 16px 16px 28px; }
+    .header h1 { font-size: 22px; }
+    .timer-ring { width: 130px; height: 130px; }
+    .timer-text .time { font-size: 34px; }
+    .vid-card iframe { height: 168px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="bubbles" id="bubbles"></div>
+  <div class="screen">
+
+    <div class="header">
+      <h1>🦷 Cepillado Mágico ✨</h1>
+      <p>2 minutos de magia para tus dientes</p>
+    </div>
+
+    <div class="streak-section" id="streak-section">
+      <div class="streak-label" id="streak-label">Tu racha 🌟</div>
+      <div class="streak-dots" id="streak-dots"></div>
+    </div>
+
+    <div class="video-badge" id="vid-badge">Video 1 de 20</div>
+
+    <div class="timer-ring">
+      <svg width="155" height="155" viewBox="0 0 155 155">
+        <circle cx="77.5" cy="77.5" r="66" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="10"/>
+        <circle id="ring-fill" cx="77.5" cy="77.5" r="66"
+          fill="none" stroke="white" stroke-width="10"
+          stroke-dasharray="414.69" stroke-dashoffset="0"
+          stroke-linecap="round"
+          transform="rotate(-90 77.5 77.5)"
+          style="transition: stroke-dashoffset 1s linear, stroke 0.5s ease;"/>
+      </svg>
+      <div class="timer-text">
+        <div class="time" id="timer-display">2:00</div>
+        <div class="lbl" id="timer-lbl">minutos</div>
+      </div>
+    </div>
+
+    <div class="prog-wrap">
+      <div class="prog-fill" id="prog-fill" style="width:100%"></div>
+    </div>
+
+    <div class="vid-card">
+      <div class="vid-wrap">
+        <iframe id="yt-frame" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        <div class="vid-overlay" id="vid-overlay" onclick="startTimer()">
+          <div class="play-circle">
+            <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+          </div>
+          <div class="cat-pill" id="overlay-cat">Cargando...</div>
+        </div>
+      </div>
+      <div class="vid-info">
+        <div class="vid-name" id="vid-name">Cargando video...</div>
+        <span class="vid-cat-tag" id="vid-cat-tag"></span>
+      </div>
+    </div>
+
+    <div class="tip-box" id="tip-box">
+      Presiona ▶ para empezar el video y el cronómetro 🪥
+    </div>
+
+    <button class="btn-primary" id="btn-start" onclick="startTimer()">
+      <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+      ¡Empezar a cepillar!
+    </button>
+
+    <div class="btn-row">
+      <button class="btn-sec hidden" id="btn-reset" onclick="resetTimer()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.9"/>
+        </svg>
+        Volver a intentar
+      </button>
+      <button class="btn-sec" id="btn-skip" onclick="skipVideo()">
+        <svg viewBox="0 0 24 24"><polygon points="5,4 15,12 5,20"/><line x1="19" y1="5" x2="19" y2="19" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+        Otro video
+      </button>
+    </div>
+
+    <div class="celebration hidden" id="celebration">
+      <div class="cel-emoji" id="cel-emoji">🎉</div>
+      <div class="cel-title">¡Súper trabajo!</div>
+      <div class="cel-msg" id="cel-msg">Tus dientes están brillantes 😁</div>
+      <button class="btn-primary" style="margin-top:6px" onclick="nextRound()">
+        <svg viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+        Siguiente video
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const TOTAL = 120;
+const CIRC = 2 * Math.PI * 66;
+
+const ALL_VIDEOS = [
+  { id:"3JZ_D3ELwOQ", name:"Peces de colores en el arrecife de coral", cat:"🌊 Mar", tip:"🐠 Cuenta cuántos peces de colores distintos ves" },
+  { id:"LLnHkjMFMGE", name:"Tortugas marinas nadando lentamente", cat:"🌊 Mar", tip:"🐢 Imagina que nadas suave como una tortuga" },
+  { id:"iI6ZUAH-rds", name:"Mariposas y flores del jardín", cat:"🌿 Naturaleza", tip:"🌸 ¿Cuántos colores de flores puedes contar?" },
+  { id:"t1Olzez4KxA", name:"Viaje por el sistema solar", cat:"🚀 Espacio", tip:"🪐 ¿Cuántos planetas puedes reconocer?" },
+  { id:"qPMnpGjlRDI", name:"Colores mezclándose en agua", cat:"🎨 Arte", tip:"🎨 ¿Qué figuras y formas puedes ver?" },
+  { id:"BHACKCNDMW8", name:"Elefantes en la sabana africana", cat:"🦁 Animales", tip:"🐘 Observa cómo se mueven los bebés elefantes" },
+  { id:"dDuWvMS9J7Y", name:"Leones descansando bajo el sol", cat:"🦁 Animales", tip:"🦁 ¿Cuántos leones puedes contar?" },
+  { id:"rD4NKGImdpM", name:"Pandas jugando y rodando", cat:"🦁 Animales", tip:"🐼 ¡Mira qué torpes y adorables son!" },
+  { id:"1EiC9bvVGnk", name:"Delfines saltando en el océano", cat:"🌊 Mar", tip:"🐬 Cuenta cuántos saltos dan los delfines" },
+  { id:"WNCSGKKs7lQ", name:"Arco iris y nubes esponjosas", cat:"🌤 Cielo", tip:"🌈 Nombra todos los colores del arco iris" },
+  { id:"5GgijTyaOI4", name:"Loros y aves tropicales de colores", cat:"🌿 Naturaleza", tip:"🦜 ¿Qué color es tu ave favorita?" },
+  { id:"FXxUSOA_Joo", name:"Volcanes y lava fluyendo", cat:"🌍 Tierra", tip:"🌋 Imagina que eres exploradora de volcanes" },
+  { id:"oCkB9pRFVKo", name:"Flores de cerezo cayando en Japón", cat:"🌿 Naturaleza", tip:"🌸 Cuenta los pétalos que caen como nieve" },
+  { id:"BmCTQ4aX4O4", name:"Tiburones en las profundidades", cat:"🌊 Mar", tip:"🦈 ¿Cuántos tiburones puedes ver?" },
+  { id:"sIStamMpGH0", name:"Galaxias y estrellas del universo", cat:"🚀 Espacio", tip:"✨ Imagina qué hay más allá de las estrellas" },
+  { id:"xSAsUbGjrRQ", name:"Pulpos cambiando de color", cat:"🌊 Mar", tip:"🐙 Cuenta cuántos colores usa el pulpo" },
+  { id:"Mwbw9KF-ACY", name:"Zorros y animales del bosque", cat:"🌿 Naturaleza", tip:"🦊 ¿Qué animal del bosque te gustaría ser?" },
+  { id:"v-0H_QQMzeo", name:"Auroras boreales en el cielo ártico", cat:"🌤 Cielo", tip:"🌠 ¿Cuántos colores tiene la aurora?" },
+  { id:"kMLBHE3RkW8", name:"Olas del mar en cámara lenta", cat:"🌊 Mar", tip:"🌊 Respira cuando sube la ola, exhala cuando baja" },
+  { id:"ZKXnKcIBKrM", name:"Montañas nevadas y paisajes mágicos", cat:"🌍 Tierra", tip:"🏔 Imagina que eres alpinista explorando cimas" },
+];
+
+const TIPS = [
+  "💡 ¡Mueve el cepillo en círculos chiquitos!",
+  "💡 No olvides los dientes de atrás",
+  "⭐ ¡Ya llevas la mitad! ¡Sigue así!",
+  "💡 Ahora cepilla la lengua suavemente",
+  "🏆 ¡Ya casi! ¡Eres una campeona!"
+];
+
+const CEL_MSGS = [
+  "Tus dientes están brillantes y perfectos 😁",
+  "¡Qué dientes tan limpios y hermosos! 🌟",
+  "¡Otra vez lo lograste, campeona! 🏆",
+  "¡Tus dientes te lo agradecen! 🦷💖",
+  "¡Eres una experta cepillándote! ⭐",
+  "¡Sonríe, tienes los dientes más limpios! 😄",
+  "¡Increíble! ¡7 días seguidos! 🎊",
+];
+
+const CEL_EMOJIS = ["🎉","🌟","🦷","🏆","💫","🎊","✨"];
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem('cepillado_state') || '{}');
+    return {
+      streak: s.streak || 0,
+      lastDate: s.lastDate || '',
+      queueIdx: s.queueIdx || 0,
+      queueOrder: s.queueOrder || null,
+      totalSessions: s.totalSessions || 0
+    };
+  } catch(e) { return { streak: 0, lastDate: '', queueIdx: 0, queueOrder: null, totalSessions: 0 }; }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('cepillado_state', JSON.stringify(state));
+  } catch(e) {}
+}
+
+let state = loadState();
+if (!state.queueOrder || state.queueOrder.length !== ALL_VIDEOS.length) {
+  state.queueOrder = shuffle(ALL_VIDEOS.map((_,i)=>i));
+  state.queueIdx = 0;
+}
+
+let remaining = TOTAL;
+let interval = null;
+let running = false;
+
+function currentVideo() {
+  const idx = state.queueOrder[state.queueIdx % state.queueOrder.length];
+  return ALL_VIDEOS[idx];
+}
+
+function loadVideo(autoplay = false) {
+  const v = currentVideo();
+  const ap = autoplay ? 1 : 0;
+  document.getElementById('yt-frame').src =
+    `https://www.youtube.com/embed/${v.id}?autoplay=${ap}&controls=1&rel=0&modestbranding=1&loop=1&playlist=${v.id}`;
+  document.getElementById('vid-name').textContent = v.name;
+  document.getElementById('vid-cat-tag').textContent = v.cat;
+  document.getElementById('overlay-cat').textContent = v.cat;
+  const pos = (state.queueIdx % ALL_VIDEOS.length) + 1;
+  document.getElementById('vid-badge').textContent = `Video ${pos} de ${ALL_VIDEOS.length} — ¡todos diferentes!`;
+  document.getElementById('tip-box').textContent = "Presiona ▶ para empezar el video y el cronómetro 🪥";
+  document.getElementById('vid-overlay').style.display = 'flex';
+}
+
+function skipVideo() {
+  if (running) return;
+  state.queueIdx++;
+  if (state.queueIdx >= state.queueOrder.length) {
+    state.queueOrder = shuffle(ALL_VIDEOS.map((_,i)=>i));
+    state.queueIdx = 0;
+  }
+  saveState();
+  loadVideo(false);
+}
+
+function startTimer() {
+  if (running) return;
+  running = true;
+  document.getElementById('vid-overlay').style.display = 'none';
+  loadVideo(true);
+  document.getElementById('btn-start').classList.add('hidden');
+  document.getElementById('btn-skip').classList.add('hidden');
+  document.getElementById('btn-reset').classList.remove('hidden');
+  document.getElementById('celebration').classList.remove('show');
+  document.getElementById('celebration').classList.add('hidden');
+  document.getElementById('tip-box').textContent = TIPS[0];
+
+  const milestones = [90, 70, 50, 30];
+  let tipIdx = 1;
+
+  interval = setInterval(() => {
+    remaining--;
+    if (milestones.includes(remaining) && tipIdx < TIPS.length) {
+      document.getElementById('tip-box').textContent = TIPS[tipIdx++];
+    }
+    updateDisplay();
+    if (remaining <= 0) {
+      clearInterval(interval);
+      running = false;
+      celebrate();
+    }
+  }, 1000);
+}
+
+function updateDisplay() {
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  document.getElementById('timer-display').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  const frac = remaining / TOTAL;
+  document.getElementById('ring-fill').style.strokeDashoffset = CIRC * (1 - frac);
+  document.getElementById('prog-fill').style.width = (frac * 100) + '%';
+  if (remaining <= 30) {
+    document.getElementById('ring-fill').style.stroke = '#FAC775';
+    document.getElementById('prog-fill').style.background = '#FAC775';
+  }
+}
+
+function celebrate() {
+  const today = new Date().toDateString();
+  if (state.lastDate !== today) {
+    if (state.lastDate === new Date(Date.now() - 86400000).toDateString()) {
+      state.streak++;
+    } else {
+      state.streak = 1;
+    }
+    state.lastDate = today;
+  }
+  state.totalSessions++;
+  saveState();
+  updateStreak();
+  launchConfetti();
+
+  document.getElementById('btn-start').classList.add('hidden');
+  document.getElementById('btn-reset').classList.add('hidden');
+  document.getElementById('btn-skip').classList.add('hidden');
+  const cel = document.getElementById('celebration');
+  cel.classList.remove('hidden'); cel.classList.add('show');
+  document.getElementById('cel-emoji').textContent = CEL_EMOJIS[(state.totalSessions - 1) % CEL_EMOJIS.length];
+  document.getElementById('cel-msg').textContent = CEL_MSGS[(state.totalSessions - 1) % CEL_MSGS.length];
+  document.getElementById('tip-box').textContent = `🦷 ¡${state.streak} día${state.streak !== 1 ? 's' : ''} de racha! ¡Sigue así!`;
+  document.getElementById('timer-display').textContent = '🎉';
+  document.getElementById('ring-fill').style.strokeDashoffset = CIRC;
+  document.getElementById('prog-fill').style.width = '0%';
+}
+
+function launchConfetti() {
+  const colors = ['#FAC775','#5DCAA5','#7F77DD','#F0997B','#85B7EB','#ffffff'];
+  const burst = document.createElement('div');
+  burst.className = 'confetti-burst';
+  document.body.appendChild(burst);
+  for (let i = 0; i < 60; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.cssText = `
+      left: ${Math.random()*100}%;
+      top: -10px;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      width: ${6 + Math.random()*8}px;
+      height: ${6 + Math.random()*8}px;
+      border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+      animation-delay: ${Math.random()*1.2}s;
+      animation-duration: ${2 + Math.random()*1.5}s;
+    `;
+    burst.appendChild(p);
+  }
+  setTimeout(() => burst.remove(), 4000);
+}
+
+function nextRound() {
+  state.queueIdx++;
+  if (state.queueIdx >= state.queueOrder.length) {
+    state.queueOrder = shuffle(ALL_VIDEOS.map((_,i)=>i));
+    state.queueIdx = 0;
+  }
+  saveState();
+  resetTimer();
+}
+
+function resetTimer() {
+  clearInterval(interval);
+  running = false;
+  remaining = TOTAL;
+  document.getElementById('timer-display').textContent = '2:00';
+  document.getElementById('timer-lbl').textContent = 'minutos';
+  document.getElementById('ring-fill').style.strokeDashoffset = 0;
+  document.getElementById('ring-fill').style.stroke = 'white';
+  document.getElementById('prog-fill').style.width = '100%';
+  document.getElementById('prog-fill').style.background = 'white';
+  document.getElementById('btn-start').classList.remove('hidden');
+  document.getElementById('btn-reset').classList.add('hidden');
+  document.getElementById('btn-skip').classList.remove('hidden');
+  document.getElementById('celebration').classList.remove('show');
+  document.getElementById('celebration').classList.add('hidden');
+  loadVideo(false);
+}
+
+function updateStreak() {
+  const dots = document.getElementById('streak-dots');
+  dots.innerHTML = '';
+  const label = document.getElementById('streak-label');
+  const show = Math.min(Math.max(state.streak, 1), 14);
+  label.textContent = state.streak > 0
+    ? `¡${state.streak} día${state.streak !== 1 ? 's' : ''} seguido${state.streak !== 1 ? 's' : ''}! 🌟`
+    : 'Tu racha 🌟';
+  for (let i = 0; i < show; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < state.streak ? ' done' : '');
+    dots.appendChild(d);
+  }
+}
+
+const bubblesEl = document.getElementById('bubbles');
+for (let i = 0; i < 12; i++) {
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  const size = 20 + Math.random() * 60;
+  b.style.cssText = `
+    width:${size}px; height:${size}px;
+    left:${Math.random()*100}%;
+    animation-duration:${8 + Math.random()*12}s;
+    animation-delay:${Math.random()*10}s;
+  `;
+  bubblesEl.appendChild(b);
+}
+
+updateStreak();
+loadVideo(false);
+</script>
+</body>
+</html>
